@@ -1,11 +1,11 @@
--- Calculate revenue by client
+-- Calculate revenue by city
 -- This query reads from the Curated Layer (data/curated/)
--- Shows total revenue per client with client details
+-- Shows total revenue per city with customer count
 
 SELECT 
-    dc.nome AS cliente,
+    dc.cidade,
     SUM(f.valor_total) AS receita_total
 FROM read_parquet('data/curated/fato_vendas.parquet') f
 INNER JOIN read_parquet('data/curated/dim_cliente.parquet') dc ON f.id_cliente = dc.id_cliente
-GROUP BY dc.nome
+GROUP BY dc.cidade
 ORDER BY receita_total DESC;

@@ -1,6 +1,6 @@
 """
-Analytics script: Calculate revenue by client using DuckDB on Parquet files.
-This script loads the SQL query from a file and executes it with DuckDB.
+Analytics script: Calculate revenue by client using DuckDB on Curated Layer.
+This script reads from the Curated Layer (data/curated/) and saves results to analytics layer.
 """
 
 import sys
@@ -12,30 +12,34 @@ import pandas as pd
 # Add parent directory to path to import config
 sys.path.append(str(Path(__file__).parent.parent))
 
-from config.settings import (
-    PROCESSED_SALES_FILE,
-    PROCESSED_CLIENTS_FILE,
-    PROCESSED_PRODUCTS_FILE,
-    ANALYTICS_REVENUE_BY_CLIENT_FILE,
-    REVENUE_BY_CLIENT_SQL
-)
+from config.settings import DATA_DIR, ANALYTICS_DATA_DIR
 
 
 def calculate_revenue_by_client():
     """
-    Calculate revenue by client from sales data using DuckDB.
-    Results are saved to a Parquet file.
+    Calculate revenue by client from Curated Layer using DuckDB.
+    Results are saved to a Parquet file in the analytics layer.
     """
-    print("Calculating revenue by client...")
+    print("Calculating revenue by client from Curated Layer...")
     
     # Read SQL query from file
-    with open(REVENUE_BY_CLIENT_SQL, 'r') as f:
+    sql_file = Path(__file__).parent.parent / "sql" / "analytics" / "receita_por_cliente.sql"
+    with open(sql_file, 'r') as f:
         sql_query = f.read()
     
-    # Adapt query for DuckDB with Parquet files
-    duckdb_query = sql_query.replace('FROM vendas v', f"FROM read_parquet('{PROCESSED_SALES_FILE}') v")
-    duckdb_query = duckdb_query.replace('JOIN clientes c', f"JOIN read_parquet('{PROCESSED_CLIENTS_FILE}') c")
-    duckdb_query = duckdb_query.replace('JOIN produtos p', f"JOIN read_parquet('{PROCESSED_PRODUCTS_FILE}') p")
+    # Adapt query to use absolute paths
+    curated_dir = DATA_DIR / "curated"
+    fato_vendas_path = curated_dir / "fato_vendas.parquet"
+    dim_cliente_path = curated_dir / "dim_cliente.parquet"
+    
+    duckdb_query = sql_query.replace(
+        "read_parquet('data/curated/fato_vendas.parquet')",
+        f"read_parquet('{fato_vendas_path}')"
+    )
+    duckdb_query = duckdb_query.replace(
+        "read_parquet('data/curated/dim_cliente.parquet')",
+        f"read_parquet('{dim_cliente_path}')"
+    )
     
     # Execute query with DuckDB
     df = duckdb.sql(duckdb_query).df()
@@ -43,9 +47,10 @@ def calculate_revenue_by_client():
     print("Revenue by Client Results:")
     print(df.to_string(index=False))
     
-    # Save to Parquet
-    df.to_parquet(ANALYTICS_REVENUE_BY_CLIENT_FILE, index=False)
-    print(f"\nResults saved to {ANALYTICS_REVENUE_BY_CLIENT_FILE}")
+    # Save to analytics layer
+    output_file = ANALYTICS_DATA_DIR / "receita_por_cliente.parquet"
+    df.to_parquet(output_file, index=False)
+    print(f"\nResults saved to {output_file}")
     
     return df
 

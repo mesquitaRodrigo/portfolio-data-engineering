@@ -1,7 +1,7 @@
--- Calculate total revenue from all sales
+-- Calculate average ticket (average sale value)
 -- This query reads from the Curated Layer (data/curated/)
--- Revenue = quantity * unit price
+-- Shows overall average ticket
 
 SELECT 
-    SUM(f.valor_total) AS receita_total
+    AVG(f.valor_total) AS ticket_medio
 FROM read_parquet('data/curated/fato_vendas.parquet') f;
