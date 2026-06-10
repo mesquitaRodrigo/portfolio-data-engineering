@@ -308,13 +308,13 @@ Análises:
 
 ## Dashboard
 
-docs/Dashboard Execultivo de vendas.png
+![Dashboard Executivo](docs/Dashboard%20Execultivo%20de%20vendas.png)
 
 ---
 
 # 🗄️ Data Warehouse
 
-docs/dw_tables.png
+![Data Warehouse Tables](docs/dw_tables.png)
 
 ---
 
