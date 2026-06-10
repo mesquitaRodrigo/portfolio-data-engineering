@@ -1,12 +1,13 @@
 """
 Pipeline Orchestration Script
-Executes the complete data pipeline: Extract → Curated → Analytics → Tests
+Executes the complete data pipeline: Extract → Curated → Load DW → Analytics → Tests
 
 This script orchestrates the execution of the entire data engineering pipeline:
 1. Extract: Extract data from PostgreSQL ERP to Raw Layer
 2. Curated: Transform Raw Layer to Curated Layer (Dimensional Model)
-3. Analytics: Calculate business metrics from Curated Layer
-4. Tests: Run comprehensive tests to validate all layers
+3. Load DW: Load Curated Layer to PostgreSQL Data Warehouse
+4. Analytics: Calculate business metrics from Curated Layer
+5. Tests: Run comprehensive tests to validate all layers
 
 All steps are executed in sequence with proper error handling and logging.
 """
@@ -99,11 +100,44 @@ class PipelineOrchestrator:
             self.steps_failed.append("Curated")
             return False
     
+    def run_load_dw(self) -> bool:
+        """Execute Load DW step: Curated Layer → PostgreSQL Data Warehouse"""
+        logger.info("")
+        logger.info("=" * 70)
+        logger.info("PASSO 3: LOAD DW - CURATED LAYER → POSTGRESQL DW")
+        logger.info("=" * 70)
+        logger.info("")
+        
+        try:
+            load_dw_script = self.project_dir / "etl" / "load" / "load_dw_postgres.py"
+            logger.info(f"Executando: {load_dw_script}")
+            
+            result = subprocess.run(
+                [sys.executable, str(load_dw_script)],
+                cwd=str(self.project_dir),
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode == 0:
+                logger.info("✓ Load DW concluído com sucesso")
+                self.steps_completed.append("Load DW")
+                return True
+            else:
+                logger.error(f"✗ Load DW falhou: {result.stderr}")
+                self.steps_failed.append("Load DW")
+                return False
+                
+        except Exception as e:
+            logger.error(f"✗ Erro ao executar Load DW: {e}")
+            self.steps_failed.append("Load DW")
+            return False
+    
     def run_analytics(self) -> bool:
         """Execute Analytics step: Curated Layer → Analytics Layer"""
         logger.info("")
         logger.info("=" * 70)
-        logger.info("PASSO 3: ANALYTICS - CURATED LAYER → ANALYTICS LAYER")
+        logger.info("PASSO 4: ANALYTICS - CURATED LAYER → ANALYTICS LAYER")
         logger.info("=" * 70)
         logger.info("")
         
@@ -136,7 +170,7 @@ class PipelineOrchestrator:
         """Execute Tests step: Validate all layers"""
         logger.info("")
         logger.info("=" * 70)
-        logger.info("PASSO 4: TESTES - VALIDAÇÃO DE TODAS AS CAMADAS")
+        logger.info("PASSO 5: TESTES - VALIDAÇÃO DE TODAS AS CAMADAS")
         logger.info("=" * 70)
         logger.info("")
         
@@ -178,6 +212,8 @@ class PipelineOrchestrator:
         logger.info("  Raw Layer (Parquet)")
         logger.info("  ↓ Curated")
         logger.info("  Curated Layer (Dimensional Model - Parquet)")
+        logger.info("  ↓ Load DW")
+        logger.info("  DW PostgreSQL (Schema dw)")
         logger.info("  ↓ Analytics")
         logger.info("  Analytics Layer (Business Metrics - Parquet)")
         logger.info("  ↓ Tests")
@@ -191,10 +227,13 @@ class PipelineOrchestrator:
             curated_success = self.run_curated()
             
             if curated_success:
-                analytics_success = self.run_analytics()
+                load_dw_success = self.run_load_dw()
                 
-                if analytics_success:
-                    tests_success = self.run_tests()
+                if load_dw_success:
+                    analytics_success = self.run_analytics()
+                    
+                    if analytics_success:
+                        tests_success = self.run_tests()
         
         # Print final summary
         self.print_summary()

@@ -619,6 +619,82 @@ class ProjectTester:
             self.record_test("Schema Analytics Layer", False)
             return False
     
+    def test_dw_schema(self) -> bool:
+        """Test if DW schema exists"""
+        try:
+            logger.info("Teste 16: Verificação do Schema DW")
+            with self.engine.connect() as conn:
+                # Check if dw schema exists
+                result = conn.execute(text(
+                    "SELECT EXISTS (SELECT FROM information_schema.schemata WHERE schema_name = 'dw')"
+                ))
+                exists = result.scalar()
+                if not exists:
+                    logger.error("✗ Schema dw não existe")
+                    self.record_test("Schema dw", False)
+                    return False
+                logger.info("✓ Schema dw existe")
+                self.record_test("Schema dw", True)
+            return True
+        except Exception as e:
+            logger.error(f"✗ Erro ao verificar schema DW: {e}")
+            self.record_test("Schema DW", False)
+            return False
+    
+    def test_dw_tables(self) -> bool:
+        """Test if DW tables exist"""
+        try:
+            logger.info("Teste 17: Verificação de Tabelas DW")
+            with self.engine.connect() as conn:
+                # Check if tables exist
+                tables = ['dim_cliente', 'dim_produto', 'dim_data', 'fato_vendas']
+                for table in tables:
+                    result = conn.execute(text(
+                        f"SELECT EXISTS (SELECT FROM information_schema.tables "
+                        f"WHERE table_schema = 'dw' AND table_name = '{table}')"
+                    ))
+                    exists = result.scalar()
+                    if not exists:
+                        logger.error(f"✗ Tabela dw.{table} não existe")
+                        self.record_test(f"Tabela dw.{table}", False)
+                        return False
+                    logger.info(f"✓ Tabela dw.{table} existe")
+                    self.record_test(f"Tabela dw.{table}", True)
+            return True
+        except Exception as e:
+            logger.error(f"✗ Erro ao verificar tabelas DW: {e}")
+            self.record_test("Tabelas DW", False)
+            return False
+    
+    def test_dw_data(self) -> bool:
+        """Test if DW tables have expected data"""
+        try:
+            logger.info("Teste 18: Verificação de Dados no DW")
+            with self.engine.connect() as conn:
+                tables = {
+                    'dw.dim_cliente': 10,
+                    'dw.dim_produto': 10,
+                    'dw.dim_data': 20,
+                    'dw.fato_vendas': 46
+                }
+                
+                all_valid = True
+                for table, expected_count in tables.items():
+                    result = conn.execute(text(f"SELECT COUNT(*) FROM {table}"))
+                    count = result.scalar()
+                    if count == expected_count:
+                        logger.info(f"✓ Tabela {table} tem {count} registros (esperado: {expected_count})")
+                        self.record_test(f"Dados {table}", True)
+                    else:
+                        logger.error(f"✗ Tabela {table} tem {count} registros (esperado: {expected_count})")
+                        self.record_test(f"Dados {table}", False)
+                        all_valid = False
+            return all_valid
+        except Exception as e:
+            logger.error(f"✗ Erro ao verificar dados DW: {e}")
+            self.record_test("Dados DW", False)
+            return False
+    
     def record_test(self, test_name: str, passed: bool) -> None:
         """Record test result"""
         self.test_results.append((test_name, passed))
@@ -682,6 +758,12 @@ class ProjectTester:
             self.test_curated_layer_data()
             self.test_curated_layer_schema()
             self.test_curated_layer_integrity()
+            
+            # DW tests
+            if self.engine:
+                self.test_dw_schema()
+                self.test_dw_tables()
+                self.test_dw_data()
             
             # Analytics Layer tests
             self.test_analytics_layer_files()
