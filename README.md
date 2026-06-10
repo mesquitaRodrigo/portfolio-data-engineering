@@ -1,199 +1,130 @@
-# 🚀 Portfolio Data Engineering
+# Portfolio Data Engineering
 
-Projeto completo de Engenharia de Dados desenvolvido com Python, PostgreSQL, Docker e Metabase.
+Pipeline completa de Engenharia de Dados desenvolvida com PostgreSQL, Python, Parquet, Docker e Metabase.
 
-O objetivo deste projeto é demonstrar a construção de uma pipeline de dados ponta a ponta, desde um sistema ERP operacional até dashboards analíticos para tomada de decisão.
+O projeto simula um ambiente corporativo com uma arquitetura moderna de dados, incluindo:
 
----
-
-# 📊 Arquitetura
-
-```text
-ERP PostgreSQL
-      │
-      ▼
-Raw Layer (Parquet)
-      │
-      ▼
-Curated Layer (Star Schema)
-      │
-      ▼
-Data Warehouse PostgreSQL
-      │
-      ▼
-Analytics Layer
-      │
-      ▼
-Metabase Dashboard
-```
+* ERP Operacional (PostgreSQL)
+* Raw Layer (Data Lake)
+* Curated Layer (Modelo Dimensional)
+* Analytics Layer (Métricas de Negócio)
+* Data Quality
+* Testes Automatizados
+* Dashboard no Metabase
 
 ---
 
-# 🏗️ Arquitetura de Dados
-
-## ERP (Operational Layer)
-
-Tabelas transacionais:
-
-* clientes
-* produtos
-* pedidos
-* itens_pedido
-
-Relacionamentos:
+## Arquitetura
 
 ```text
-clientes
-    │
-    ▼
-pedidos
-    │
-    ▼
-itens_pedido
-    ▲
-    │
-produtos
-```
-
----
-
-## Raw Layer
-
-Objetivo:
-
-* Armazenar extrações do ERP sem transformação.
-* Preservar histórico bruto.
-* Servir como camada de auditoria.
-
-Arquivos:
-
-```text
-data/raw/
-├── clientes.parquet
-├── produtos.parquet
-├── pedidos.parquet
-└── itens_pedido.parquet
+                 ERP OPERACIONAL
+                   PostgreSQL
+                        |
+                        v
++------------------------------------------------+
+|                  RAW LAYER                     |
+|              Arquivos Parquet                  |
++------------------------------------------------+
+                        |
+                        v
++------------------------------------------------+
+|                CURATED LAYER                   |
+|             Modelo Dimensional                 |
+|                                                |
+|  dim_cliente                                   |
+|  dim_produto                                   |
+|  dim_data                                      |
+|  fato_vendas                                   |
++------------------------------------------------+
+                        |
+                        v
++------------------------------------------------+
+|               ANALYTICS LAYER                  |
+|                                                |
+| Receita Total                                  |
+| Receita por Cliente                            |
+| Receita por Produto                            |
+| Receita por Cidade                             |
+| Ticket Médio                                   |
+| Produto Mais Vendido                           |
+| Top Clientes                                   |
+| Top Produtos                                   |
+| Receita Mensal                                 |
++------------------------------------------------+
+                        |
+                        v
++------------------------------------------------+
+|                  METABASE                      |
+|             Dashboards e KPIs                  |
++------------------------------------------------+
 ```
 
 ---
 
-## Curated Layer
+## Tecnologias Utilizadas
 
-Modelagem dimensional em formato Star Schema.
-
-### Dimensões
-
-```text
-dim_cliente
-dim_produto
-dim_data
-```
-
-### Fato
-
-```text
-fato_vendas
-```
-
-Estrutura:
-
-```text
-                dim_cliente
-                     │
-                     │
-                     ▼
-dim_data ───► fato_vendas ◄─── dim_produto
-```
-
----
-
-## Data Warehouse
-
-Schema:
-
-```sql
-dw
-```
-
-Tabelas:
-
-```text
-dw.dim_cliente
-dw.dim_produto
-dw.dim_data
-dw.fato_vendas
-```
-
----
-
-## Analytics Layer
-
-Métricas geradas automaticamente:
-
-```text
-receita_total
-receita_por_cliente
-receita_por_produto
-receita_por_cidade
-ticket_medio
-produto_mais_vendido
-top_clientes
-top_produtos
-receita_mensal
-```
-
-Arquivos:
-
-```text
-data/analytics/
-```
-
----
-
-# ⚙️ Tecnologias Utilizadas
-
-### Linguagens
-
-* Python
-* SQL
-
-### Banco de Dados
-
-* PostgreSQL 15
-
-### Processamento
-
+* Python 3
+* PostgreSQL
 * Pandas
 * PyArrow
 * SQLAlchemy
-
-### Armazenamento
-
-* Parquet
-
-### Containerização
-
 * Docker
 * Docker Compose
-
-### Visualização
-
 * Metabase
-
-### Testes
-
-* Python
-* Validações automatizadas
+* Parquet
 
 ---
 
-# 📁 Estrutura do Projeto
+## Modelo Operacional (ERP)
+
+### clientes
+
+| Campo      | Tipo    |
+| ---------- | ------- |
+| id_cliente | INT     |
+| nome       | VARCHAR |
+| cidade     | VARCHAR |
+
+### produtos
+
+| Campo      | Tipo    |
+| ---------- | ------- |
+| id_produto | INT     |
+| nome       | VARCHAR |
+| categoria  | VARCHAR |
+| preco      | NUMERIC |
+
+### pedidos
+
+| Campo       | Tipo |
+| ----------- | ---- |
+| id_pedido   | INT  |
+| id_cliente  | INT  |
+| data_pedido | DATE |
+
+### itens_pedido
+
+| Campo          | Tipo    |
+| -------------- | ------- |
+| id_item        | INT     |
+| id_pedido      | INT     |
+| id_produto     | INT     |
+| quantidade     | INT     |
+| preco_unitario | NUMERIC |
+
+---
+
+## Estrutura do Projeto
 
 ```text
 portfolio-data-engineering/
-│
+
 ├── analytics/
+│   └── run_analytics.py
+│
 ├── config/
+│   └── settings.py
+│
 ├── data/
 │   ├── raw/
 │   ├── curated/
@@ -207,8 +138,9 @@ portfolio-data-engineering/
 │   ├── load/
 │   └── quality/
 │
-├── metabase/
 ├── sql/
+│
+├── tests/
 │
 ├── run_pipeline.py
 ├── test_project.py
@@ -217,180 +149,234 @@ portfolio-data-engineering/
 
 ---
 
-# 🔄 Pipeline
+## Camadas do Pipeline
 
-Execução completa:
+### 1. ERP Layer
 
-```bash
-python3 run_pipeline.py
-```
+Fonte operacional dos dados.
 
-Etapas executadas:
+Tabelas:
 
-```text
-1. ERP → Raw
-2. Raw → Curated
-3. Curated → Analytics
-4. Data Quality
-5. Testes Automatizados
-```
+* clientes
+* produtos
+* pedidos
+* itens_pedido
 
 ---
 
-# ✅ Data Quality
+### 2. Raw Layer
+
+Extração direta do ERP para arquivos Parquet.
+
+Arquivos:
+
+* clientes.parquet
+* produtos.parquet
+* pedidos.parquet
+* itens_pedido.parquet
+
+---
+
+### 3. Curated Layer
+
+Modelo dimensional criado para análises.
+
+Dimensões:
+
+* dim_cliente
+* dim_produto
+* dim_data
+
+Fato:
+
+* fato_vendas
+
+---
+
+### 4. Analytics Layer
+
+Métricas consolidadas para consumo analítico.
+
+Tabelas:
+
+* receita_total
+* receita_por_cliente
+* receita_por_produto
+* receita_por_cidade
+* ticket_medio
+* produto_mais_vendido
+* top_clientes
+* top_produtos
+* receita_mensal
+
+---
+
+## Data Quality
 
 Validações implementadas:
 
+### Raw Layer
+
 * Campos obrigatórios
 * Valores nulos
-* Integridade referencial
-* Quantidades positivas
-* Preços positivos
-* Regras de negócio
+* Valores negativos
+* Integridade básica
 
-Execução:
+### Curated Layer
 
-```bash
-python3 etl/quality/data_quality.py
-```
+* Integridade dimensional
+* Validação da fato
+* Chaves obrigatórias
 
-Resultado atual:
+### Regras de Negócio
+
+* Todo pedido possui itens
+* Todo item possui produto válido
+* Todo pedido possui cliente válido
+
+Resultado:
 
 ```text
-29 validações executadas
-100% aprovadas
+Total de Validações: 29
+Validações Aprovadas: 29
+Taxa de Sucesso: 100%
 ```
 
 ---
 
-# 🧪 Testes Automatizados
-
-Execução:
-
-```bash
-python3 test_project.py
-```
+## Testes Automatizados
 
 Cobertura atual:
 
 ```text
-69 testes
-69 aprovados
-100% de sucesso
+Total de Testes: 69
+Testes Aprovados: 69
+Taxa de Sucesso: 100%
 ```
 
 Validações:
 
-* ERP
+* Conexão PostgreSQL
+* Estrutura ERP
+* Dados ERP
+* Integridade Referencial
 * Raw Layer
 * Curated Layer
 * Analytics Layer
-* Data Warehouse
-* Integridade dos dados
-* Estrutura de diretórios
 * Schemas
+* Contagem de Registros
 
 ---
 
-# 📈 Dashboard Executivo
+## Executando o Projeto
 
-KPIs desenvolvidos no Metabase:
-
-* Receita Total
-* Ticket Médio
-
-Análises:
-
-* Top 5 Clientes por Receita
-* Top 5 Produtos Vendidos
-* Receita por Cidade
-* Receita Mensal
-
-## Dashboard
-
-![Dashboard Executivo](docs/Dashboard%20Execultivo%20de%20vendas.png)
-
----
-
-# 🗄️ Data Warehouse
-
-![Data Warehouse Tables](docs/dw_tables.png)
-
----
-
-# 📊 Resultados do Projeto
-
-Dados atuais:
-
-| Métrica         |    Valor |
-| --------------- | -------: |
-| Clientes        |       10 |
-| Produtos        |       10 |
-| Pedidos         |       20 |
-| Itens de Pedido |       46 |
-| Receita Total   |   49.070 |
-| Ticket Médio    | 2.453,50 |
-
----
-
-# 🚀 Como Executar
-
-## Clonar
+### Clonar
 
 ```bash
 git clone https://github.com/mesquitaRodrigo/portfolio-data-engineering.git
+
 cd portfolio-data-engineering
 ```
 
-## Instalar dependências
+### Instalar dependências
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Subir PostgreSQL
-
-```bash
-docker compose up -d
-```
-
-## Executar Pipeline
+### Executar pipeline
 
 ```bash
 python3 run_pipeline.py
 ```
 
-## Executar Testes
+### Executar testes
 
 ```bash
 python3 test_project.py
 ```
 
+### Executar Data Quality
+
+```bash
+python3 etl/quality/data_quality.py
+```
+
 ---
 
-# 🎯 Competências Demonstradas
+## Dashboard Metabase
+
+KPIs implementados:
+
+### Receita Total
+
+```text
+R$ 49.070
+```
+
+### Ticket Médio
+
+```text
+R$ 2.453,50
+```
+
+Além de:
+
+* Receita por Cliente
+* Receita por Cidade
+* Receita Mensal
+* Produtos Mais Vendidos
+* Top Clientes
+* Top Produtos
+
+---
+
+## Resultados
+
+### Dados Operacionais
+
+| Entidade     | Registros |
+| ------------ | --------- |
+| Clientes     | 10        |
+| Produtos     | 10        |
+| Pedidos      | 20        |
+| Itens Pedido | 46        |
+
+### Modelo Dimensional
+
+| Tabela      | Registros |
+| ----------- | --------- |
+| dim_cliente | 10        |
+| dim_produto | 10        |
+| dim_data    | 20        |
+| fato_vendas | 46        |
+
+---
+
+## Próximos Passos
+
+* Orquestração com Apache Airflow
+* Data Warehouse incremental
+* Particionamento de dados
+* Docker Compose completo
+* CI/CD com GitHub Actions
+* Deploy em ambiente cloud
+* Monitoramento de pipelines
+
+---
+
+## Autor
+
+Rodrigo Mesquita
+
+Projeto desenvolvido para demonstrar competências em:
 
 * Engenharia de Dados
-* ETL
 * Modelagem Dimensional
-* Data Warehouse
+* ETL
+* Data Quality
+* Analytics Engineering
 * PostgreSQL
 * Python
 * Docker
-* Data Quality
-* Testes Automatizados
-* Business Intelligence
 * Metabase
-* Arquitetura de Dados
-
----
-
-# 📬 Contato
-
-GitHub:
-
-https://github.com/mesquitaRodrigo
-
-LinkedIn:
-
-https://www.linkedin.com/in/rodrigo-mesquita-ba817179/
