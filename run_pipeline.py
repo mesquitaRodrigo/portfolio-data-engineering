@@ -9,7 +9,7 @@ This script orchestrates the execution of the entire data engineering pipeline:
 4. Analytics: Calculate business metrics from Curated Layer
 5. Tests: Run comprehensive tests to validate all layers
 
-All steps are executed in sequence with proper error handling and logging.
+All steps are executed in sequence with proper error handling, logging, and monitoring.
 """
 
 import sys
@@ -17,13 +17,14 @@ import subprocess
 from pathlib import Path
 import logging
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
-logger = logging.getLogger(__name__)
+# Add parent directory to path to import config
+sys.path.append(str(Path(__file__).parent))
+
+from config.logging_config import get_pipeline_logger, log_success, log_error
+from monitoring.pipeline_monitor import PipelineMonitor
+
+# Configure logger
+logger = get_pipeline_logger()
 
 
 class PipelineOrchestrator:
@@ -42,6 +43,9 @@ class PipelineOrchestrator:
         logger.info("=" * 70)
         logger.info("")
         
+        monitor = PipelineMonitor()
+        monitor.start_execution('extract')
+        
         try:
             extract_script = self.project_dir / "etl" / "extract" / "extract_all_tables.py"
             logger.info(f"Executando: {extract_script}")
@@ -56,15 +60,18 @@ class PipelineOrchestrator:
             if result.returncode == 0:
                 logger.info("✓ Extract concluído com sucesso")
                 self.steps_completed.append("Extract")
+                monitor.end_execution(status='success')
                 return True
             else:
                 logger.error(f"✗ Extract falhou: {result.stderr}")
                 self.steps_failed.append("Extract")
+                monitor.end_execution(status='failed')
                 return False
                 
         except Exception as e:
             logger.error(f"✗ Erro ao executar Extract: {e}")
             self.steps_failed.append("Extract")
+            monitor.end_execution(status='failed')
             return False
     
     def run_curated(self) -> bool:
@@ -74,6 +81,9 @@ class PipelineOrchestrator:
         logger.info("PASSO 2: CURATED - RAW LAYER → CURATED LAYER")
         logger.info("=" * 70)
         logger.info("")
+        
+        monitor = PipelineMonitor()
+        monitor.start_execution('curated')
         
         try:
             curated_script = self.project_dir / "etl" / "transform" / "build_curated_layer.py"
@@ -89,15 +99,18 @@ class PipelineOrchestrator:
             if result.returncode == 0:
                 logger.info("✓ Curated concluído com sucesso")
                 self.steps_completed.append("Curated")
+                monitor.end_execution(status='success')
                 return True
             else:
                 logger.error(f"✗ Curated falhou: {result.stderr}")
                 self.steps_failed.append("Curated")
+                monitor.end_execution(status='failed')
                 return False
                 
         except Exception as e:
             logger.error(f"✗ Erro ao executar Curated: {e}")
             self.steps_failed.append("Curated")
+            monitor.end_execution(status='failed')
             return False
     
     def run_load_dw(self) -> bool:
@@ -107,6 +120,9 @@ class PipelineOrchestrator:
         logger.info("PASSO 3: LOAD DW - CURATED LAYER → POSTGRESQL DW")
         logger.info("=" * 70)
         logger.info("")
+        
+        monitor = PipelineMonitor()
+        monitor.start_execution('load_dw')
         
         try:
             load_dw_script = self.project_dir / "etl" / "load" / "load_dw_postgres.py"
@@ -122,15 +138,18 @@ class PipelineOrchestrator:
             if result.returncode == 0:
                 logger.info("✓ Load DW concluído com sucesso")
                 self.steps_completed.append("Load DW")
+                monitor.end_execution(status='success')
                 return True
             else:
                 logger.error(f"✗ Load DW falhou: {result.stderr}")
                 self.steps_failed.append("Load DW")
+                monitor.end_execution(status='failed')
                 return False
                 
         except Exception as e:
             logger.error(f"✗ Erro ao executar Load DW: {e}")
             self.steps_failed.append("Load DW")
+            monitor.end_execution(status='failed')
             return False
     
     def run_analytics(self) -> bool:
@@ -140,6 +159,9 @@ class PipelineOrchestrator:
         logger.info("PASSO 4: ANALYTICS - CURATED LAYER → ANALYTICS LAYER")
         logger.info("=" * 70)
         logger.info("")
+        
+        monitor = PipelineMonitor()
+        monitor.start_execution('analytics')
         
         try:
             analytics_script = self.project_dir / "analytics" / "run_analytics.py"
@@ -155,15 +177,18 @@ class PipelineOrchestrator:
             if result.returncode == 0:
                 logger.info("✓ Analytics concluído com sucesso")
                 self.steps_completed.append("Analytics")
+                monitor.end_execution(status='success')
                 return True
             else:
                 logger.error(f"✗ Analytics falhou: {result.stderr}")
                 self.steps_failed.append("Analytics")
+                monitor.end_execution(status='failed')
                 return False
                 
         except Exception as e:
             logger.error(f"✗ Erro ao executar Analytics: {e}")
             self.steps_failed.append("Analytics")
+            monitor.end_execution(status='failed')
             return False
     
     def run_tests(self) -> bool:
@@ -173,6 +198,9 @@ class PipelineOrchestrator:
         logger.info("PASSO 5: TESTES - VALIDAÇÃO DE TODAS AS CAMADAS")
         logger.info("=" * 70)
         logger.info("")
+        
+        monitor = PipelineMonitor()
+        monitor.start_execution('tests')
         
         try:
             test_script = self.project_dir / "test_project.py"
@@ -188,15 +216,18 @@ class PipelineOrchestrator:
             if result.returncode == 0:
                 logger.info("✓ Testes concluídos com sucesso")
                 self.steps_completed.append("Testes")
+                monitor.end_execution(status='success')
                 return True
             else:
                 logger.error(f"✗ Testes falharam: {result.stderr}")
                 self.steps_failed.append("Testes")
+                monitor.end_execution(status='failed')
                 return False
                 
         except Exception as e:
             logger.error(f"✗ Erro ao executar Testes: {e}")
             self.steps_failed.append("Testes")
+            monitor.end_execution(status='failed')
             return False
     
     def run_pipeline(self) -> None:

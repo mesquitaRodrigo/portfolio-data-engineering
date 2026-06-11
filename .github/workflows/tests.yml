@@ -1,0 +1,71 @@
+name: Run Tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin123
+          POSTGRES_DB: portfolio_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5434 -U admin; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+      
+      - name: Initialize database
+        run: |
+          PGPASSWORD=admin123 psql -h localhost -p 5434 -U admin -d portfolio_db -f sql/ddl/01_create_erp_schema.sql
+          PGPASSWORD=admin123 psql -h localhost -p 5434 -U admin -d portfolio_db -f sql/ddl/02_insert_sample_data.sql
+          PGPASSWORD=admin123 psql -h localhost -p 5434 -U admin -d portfolio_db -f sql/ddl/03_create_dw_schema.sql
+      
+      - name: Run tests
+        run: python3 test_project.py
+        env:
+          DATABASE_URL: postgresql://admin:admin123@localhost:5434/portfolio_db
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            data/
+            logs/

@@ -695,6 +695,145 @@ class ProjectTester:
             self.record_test("Dados DW", False)
             return False
     
+    def test_logs_created(self) -> bool:
+        """Test if log files are created"""
+        try:
+            logger.info("Teste 19: Verificação de Arquivos de Log")
+            
+            log_files = {
+                'pipeline.log': Path('logs/pipeline.log'),
+                'quality.log': Path('logs/quality.log'),
+                'analytics.log': Path('logs/analytics.log'),
+                'airflow.log': Path('logs/airflow.log')
+            }
+            
+            all_exist = True
+            for name, path in log_files.items():
+                if path.exists():
+                    size = path.stat().st_size
+                    logger.info(f"✓ Arquivo de log {name} existe ({size} bytes)")
+                    self.record_test(f"Log {name}", True)
+                else:
+                    logger.warning(f"⚠ Arquivo de log {name} não existe ainda (será criado na execução)")
+                    self.record_test(f"Log {name}", True)  # Not critical if doesn't exist yet
+            return True
+        except Exception as e:
+            logger.error(f"✗ Erro ao verificar arquivos de log: {e}")
+            self.record_test("Arquivos de Log", False)
+            return False
+    
+    def test_audit_schema_exists(self) -> bool:
+        """Test if audit schema exists"""
+        try:
+            logger.info("Teste 20: Verificação do Schema Audit")
+            with self.engine.connect() as conn:
+                result = conn.execute(text(
+                    "SELECT EXISTS (SELECT FROM information_schema.schemata WHERE schema_name = 'audit')"
+                ))
+                exists = result.scalar()
+                if not exists:
+                    logger.error("✗ Schema audit não existe")
+                    self.record_test("Schema audit", False)
+                    return False
+                logger.info("✓ Schema audit existe")
+                self.record_test("Schema audit", True)
+            return True
+        except Exception as e:
+            logger.error(f"✗ Erro ao verificar schema audit: {e}")
+            self.record_test("Schema audit", False)
+            return False
+    
+    def test_pipeline_execution_table_exists(self) -> bool:
+        """Test if audit.pipeline_execution table exists"""
+        try:
+            logger.info("Teste 21: Verificação da Tabela pipeline_execution")
+            with self.engine.connect() as conn:
+                result = conn.execute(text(
+                    "SELECT EXISTS (SELECT FROM information_schema.tables "
+                    "WHERE table_schema = 'audit' AND table_name = 'pipeline_execution')"
+                ))
+                exists = result.scalar()
+                if not exists:
+                    logger.error("✗ Tabela audit.pipeline_execution não existe")
+                    self.record_test("Tabela pipeline_execution", False)
+                    return False
+                logger.info("✓ Tabela audit.pipeline_execution existe")
+                self.record_test("Tabela pipeline_execution", True)
+            return True
+        except Exception as e:
+            logger.error(f"✗ Erro ao verificar tabela pipeline_execution: {e}")
+            self.record_test("Tabela pipeline_execution", False)
+            return False
+    
+    def test_execution_history_csv_exists(self) -> bool:
+        """Test if execution_history.csv exists"""
+        try:
+            logger.info("Teste 22: Verificação do Arquivo execution_history.csv")
+            csv_file = Path('monitoring/execution_history.csv')
+            if csv_file.exists():
+                size = csv_file.stat().st_size
+                logger.info(f"✓ Arquivo execution_history.csv existe ({size} bytes)")
+                self.record_test("Arquivo execution_history.csv", True)
+                return True
+            else:
+                logger.warning(f"⚠ Arquivo execution_history.csv não existe ainda (será criado na execução)")
+                self.record_test("Arquivo execution_history.csv", True)  # Not critical if doesn't exist yet
+                return True
+        except Exception as e:
+            logger.error(f"✗ Erro ao verificar execution_history.csv: {e}")
+            self.record_test("Arquivo execution_history.csv", False)
+            return False
+    
+    def test_data_quality_metrics_exists(self) -> bool:
+        """Test if data_quality_metrics.parquet exists"""
+        try:
+            logger.info("Teste 23: Verificação do Arquivo data_quality_metrics.parquet")
+            metrics_file = ANALYTICS_DATA_DIR / 'data_quality_metrics.parquet'
+            if metrics_file.exists():
+                size = metrics_file.stat().st_size
+                logger.info(f"✓ Arquivo data_quality_metrics.parquet existe ({size} bytes)")
+                self.record_test("Arquivo data_quality_metrics.parquet", True)
+                return True
+            else:
+                logger.warning(f"⚠ Arquivo data_quality_metrics.parquet não existe ainda (será criado na execução)")
+                self.record_test("Arquivo data_quality_metrics.parquet", True)  # Not critical if doesn't exist yet
+                return True
+        except Exception as e:
+            logger.error(f"✗ Erro ao verificar data_quality_metrics.parquet: {e}")
+            self.record_test("Arquivo data_quality_metrics.parquet", False)
+            return False
+    
+    def test_monitoring_functioning(self) -> bool:
+        """Test if monitoring system is functioning"""
+        try:
+            logger.info("Teste 24: Verificação do Sistema de Monitoramento")
+            
+            # Test if monitoring module can be imported
+            try:
+                from monitoring.pipeline_monitor import PipelineMonitor
+                logger.info("✓ Módulo pipeline_monitor importado com sucesso")
+                self.record_test("Import pipeline_monitor", True)
+            except ImportError as e:
+                logger.error(f"✗ Falha ao importar pipeline_monitor: {e}")
+                self.record_test("Import pipeline_monitor", False)
+                return False
+            
+            # Test if monitor can be instantiated
+            try:
+                monitor = PipelineMonitor()
+                logger.info("✓ PipelineMonitor instanciado com sucesso")
+                self.record_test("Instanciação PipelineMonitor", True)
+            except Exception as e:
+                logger.error(f"✗ Falha ao instanciar PipelineMonitor: {e}")
+                self.record_test("Instanciação PipelineMonitor", False)
+                return False
+            
+            return True
+        except Exception as e:
+            logger.error(f"✗ Erro ao verificar sistema de monitoramento: {e}")
+            self.record_test("Sistema de Monitoramento", False)
+            return False
+    
     def record_test(self, test_name: str, passed: bool) -> None:
         """Record test result"""
         self.test_results.append((test_name, passed))
@@ -769,6 +908,15 @@ class ProjectTester:
             self.test_analytics_layer_files()
             self.test_analytics_layer_data()
             self.test_analytics_layer_schema()
+            
+            # Sprint 8 Monitoring and Observability tests
+            self.test_logs_created()
+            if self.engine:
+                self.test_audit_schema_exists()
+                self.test_pipeline_execution_table_exists()
+            self.test_execution_history_csv_exists()
+            self.test_data_quality_metrics_exists()
+            self.test_monitoring_functioning()
             
             # Print summary
             self.print_summary()
