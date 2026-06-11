@@ -52,10 +52,9 @@ jobs:
       
       - name: Initialize database
         run: |
-          PGPASSWORD=admin123 psql -h localhost -p 5434 -U admin -d portfolio_db -f sql/ddl/01_create_erp_schema.sql
-          PGPASSWORD=admin123 psql -h localhost -p 5434 -U admin -d portfolio_db -f sql/ddl/02_insert_sample_data.sql
-          PGPASSWORD=admin123 psql -h localhost -p 5434 -U admin -d portfolio_db -f sql/ddl/03_create_dw_schema.sql
-      
+           PGPASSWORD=admin123 psql -h localhost -p 5434 -U admin -d portfolio_db -f sql/ddl/create_erp_schema.sql
+           PGPASSWORD=admin123 psql -h localhost -p 5434 -U admin -d portfolio_db -f sql/ddl/load_sample_data.sql
+           PGPASSWORD=admin123 psql -h localhost -p 5434 -U admin -d portfolio_db -f sql/dw/create_dw_schema.sql      
       - name: Run tests
         run: python3 test_project.py
         env:
