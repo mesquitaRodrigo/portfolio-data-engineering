@@ -45,42 +45,42 @@ dag = DAG(
 # Task 1: Extract data from ERP to Raw Layer
 extract_task = BashOperator(
     task_id='extract_task',
-    bash_command='python3 etl/extract/extract_all_tables.py',
+    bash_command='cd /opt/airflow/project && python3 etl/extract/extract_all_tables.py',
     dag=dag,
 )
 
 # Task 2: Build Curated Layer from Raw Layer
 curated_task = BashOperator(
     task_id='curated_task',
-    bash_command='python3 etl/transform/build_curated_layer.py',
+    bash_command='cd /opt/airflow/project && python3 etl/transform/build_curated_layer.py',
     dag=dag,
 )
 
 # Task 3: Run Analytics on Curated Layer
 analytics_task = BashOperator(
     task_id='analytics_task',
-    bash_command='python3 analytics/run_analytics.py',
+    bash_command='cd /opt/airflow/project && python3 analytics/run_analytics.py',
     dag=dag,
 )
 
 # Task 4: Run Data Quality checks
 quality_task = BashOperator(
     task_id='quality_task',
-    bash_command='python3 etl/quality/data_quality.py',
+    bash_command='cd /opt/airflow/project && python3 etl/quality/data_quality.py',
     dag=dag,
 )
 
 # Task 5: Generate data quality metrics and monitor pipeline
 monitor_task = BashOperator(
     task_id='monitor_task',
-    bash_command='python3 analytics/generate_data_quality_metrics.py',
+    bash_command='cd /opt/airflow/project && python3 analytics/generate_data_quality_metrics.py',
     dag=dag,
 )
 
 # Task 6: Run automated tests
 tests_task = BashOperator(
     task_id='tests_task',
-    bash_command='python3 test_project.py',
+    bash_command='cd /opt/airflow/project && python3 test_project.py',
     dag=dag,
 )
 

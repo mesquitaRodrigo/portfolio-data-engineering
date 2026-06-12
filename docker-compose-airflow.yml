@@ -37,8 +37,14 @@ services:
       _AIRFLOW_WWW_USER_CREATE: 'true'
       _AIRFLOW_WWW_USER_USERNAME: admin
       _AIRFLOW_WWW_USER_PASSWORD: admin
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: portfolio_db
+      DB_USER: admin
+      DB_PASSWORD: admin123
     command: >
       bash -c "
+      pip install --user duckdb pandas sqlalchemy psycopg2-binary pyarrow &&
       airflow db migrate &&
       airflow users create -r Admin -u admin -e admin@example.com -f admin -l user -p admin
       "
@@ -66,7 +72,16 @@ services:
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
       AIRFLOW_WEBSERVER_SECRET_KEY: 'temporary_secret_key_change_in_production'
-    command: webserver
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: portfolio_db
+      DB_USER: admin
+      DB_PASSWORD: admin123
+    command: >
+      bash -c "
+      pip install --user duckdb pandas sqlalchemy psycopg2-binary pyarrow &&
+      airflow webserver
+      "
     ports:
       - "8080:8080"
     volumes:
@@ -98,7 +113,16 @@ services:
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
       AIRFLOW_WEBSERVER_SECRET_KEY: 'temporary_secret_key_change_in_production'
-    command: scheduler
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: portfolio_db
+      DB_USER: admin
+      DB_PASSWORD: admin123
+    command: >
+      bash -c "
+      pip install --user duckdb pandas sqlalchemy psycopg2-binary pyarrow &&
+      airflow scheduler
+      "
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
